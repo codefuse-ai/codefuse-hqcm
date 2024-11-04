@@ -1,17 +1,15 @@
 import functools
 import json
-import sys
+
 from unidiff import PatchSet
 
-
-CHSUM_PROMPT_TEMPLATE="""\
+CHSUM_PROMPT_TEMPLATE = """\
 Please generate a commit message for the following diff:
 
 ```diff
 {diff}
 ```
 """
-
 
 CHCL_PROMPT_TEMPLATE = """\
 A git commit can typically be classified into specific categories by examining its code changes and commit message. These categories include:
@@ -38,7 +36,6 @@ Accompanying this code diff is its commit message:
 ```
 
 Given this information, the git commit can be categorized as type: """
-
 
 CHCL_FEWSHOT_PROMPT_TEMPLATE = """\
 A git commit can typically be classified into specific categories by examining its code changes and commit message. These categories include:
@@ -83,7 +80,6 @@ Diff: ```diff
 ```
 Message: {message}
 Type: """
-
 
 CODEREF_PROMPT_TEMPLATE = """\
 // Please optimize the given "Code (to optimize)" (a portion of some "File"s) by strictly following the given "Suggestion".
@@ -163,9 +159,10 @@ def xitem_coderef(item, fewshot=False):
     for patched_file in PatchSet(item['change']):
         file_name = patched_file.path
         source_text = "\n".join(
+            # Add an attention to additionally inform the model
             f"{line.source_line_no} | {line.value.rstrip()} {'// !!attention' if line.is_removed else ''}"
-            for hunk in patched_file 
-            for line in hunk.source_lines() 
+            for hunk in patched_file
+            for line in hunk.source_lines()
         )
         target_text = "\n".join(
             f'{line.target_line_no} | {line.value.rstrip()}'
@@ -239,7 +236,7 @@ if __name__ == '__main__':
 
     parser = ArgumentParser(
         prog="xdata",
-        description="Tranform the HQCM dataset for finetuning of a specific code-change task"
+        description="Tranform the HQCM dataset for fine-tuning of a specific code-change task"
     )
     parser.add_argument(
         "dataset", type=Path,
@@ -256,9 +253,9 @@ if __name__ == '__main__':
         help="Path to the directory to save the HQCM dataset after transforming for the task"
     )
     parser.add_argument(
-        "-F", "--fewshot",
+        "-F", "--few-shot",
         default=False, action='store_true',
-        help="Transform the dataset that can be used for fewshot in-context learning"
+        help="Transform the dataset that can be used for few-shot in-context learning"
     )
     args = parser.parse_args()
 
