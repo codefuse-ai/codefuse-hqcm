@@ -116,20 +116,20 @@ arg_base_model = args.model
 arg_dataset = args.dataset
 opt_dataset_config = args.config
 opt_dataset_split = args.split
-opt_dataset_max_seq_len = args.maxlength
+opt_dataset_max_seq_len = args.max_length
 opt_dataset_percentage = args.percentage
 
-opt_lora = not args.nolora
-opt_lora_rank = args.lorarank
-opt_lora_alpha = args.loraalpha
-opt_lora_dropout = args.loradropout
+opt_lora = not args.no_lora
+opt_lora_rank = args.lora_rank
+opt_lora_alpha = args.lora_alpha
+opt_lora_dropout = args.lora_dropout
 
 opt_quant_bit = args.quantization
 
-opt_learning_rate = args.learningrate
-opt_training_epochs = args.numepochs
-opt_per_device_batch_size = args.microbatchsize
-opt_gradient_accumulation_steps = args.batchsize // args.microbatchsize
+opt_learning_rate = args.learning_rate
+opt_training_epochs = args.num_epochs
+opt_per_device_batch_size = args.micro_batch_size
+opt_gradient_accumulation_steps = args.batch_size // args.micro_batch_size
 
 opt_resume_from_checkpoint = args.resume
 
