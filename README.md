@@ -1,31 +1,119 @@
-## README的意义
+# CodeFuse HQCMBench
 
-README 文件通常是项目的第一个入口点。你应该通过 README 明确地告诉大家，为什么他们应该使用你的项目，以及安装和使用的方法。
+HQCM is a small-scale yet high-quality dataset designed for *Code-Change Understanding*.
+It is a carefully developed subset of the Java portion of the [MCMD](https://doi.org/10.1007/s10664-022-10219-1) dataset.
+Each entry in HQCM has been meticulously selected, reviewed, revised, and validated by crowdsource developers.
+The creation of HQCM stems from the recognition that large language models (LLMs) are not silver bullets;
+there are scenarios where their application may be limited, for example:
 
-如果在仅仅看文档而不看代码的情况下就可以使用你的项目，该文档就完成了。 这个非常重要，因为这将使项目的文档接口与其内部实现分开，只要接口保持不变，就可以自由更改项目的内部结构。 
+1. **Security Constraints**: In cases where data security is paramount, commercial LLMs are often prohibited to prevent potential data leaks, especially in industrial settings.
+2. **Compute Constraints**: LLMs are often difficult to deploy in resource-constrained environments, such as laptops and mobile devices at the edge.
+3. **Financial Constraints**: The high cost of premium LLM APIs makes their use infeasible for many applications without enough budgets.
+4. **Customized Tasks**: LLMs' performance, especially those non-premium ones, can vary significantly across specialized or customized tasks.
 
-**文档，而不是代码定义了项目的使用方式。**
+In these contexts, HQCM aims to serve as training and testing data for SLMs (small language models), or as few-shot examples for LLMs in tasks involving code-change understanding.
 
-一个规范的README文档能减少用户检索信息的时间。
+HQCM comprises approximately 5,000 high-quality pairs of code changes and their corresponding summaries, where each code change is presented in a unified diff format, while the accompanying summary is a concise sentence available in both English and Chinese.
+Each entry in HQCM is classified into one of eight popular categories: *feat* (feature), *fix*, *refactor*, *cicd* (CI/CD), *build*, *test*, *docs* (documentation), and *style*.
+Additional categories such as *perf* (performance) and *chore* are planned for future inclusion.
+The distribution of these categories reflects their natural prevalence in the real world, with refactor being the most common and style and CI/CD being the least prevalent.
 
-## 标准 README
+## Installation
 
-一个标准的README文件应当至少包含以下的内容：
+```shell
+git clone https://github.com/codefuse-ai/codefuse-hqcm hqcm && cd hqcm
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+```
 
-- 项目背景：说明创建本项目的背景与动机，创建本项目试图解决的问题 
-- 安装方法：说明如何快速上手使用该项目
-- 使用方法：列出本项目能够提供的功能以及使用这些功能的方法
-- 文档：现阶段antcode鼓励用户使用语雀组织项目文档，在README上应当放入项目的语雀文档链接
+## Task Adaptation 
 
-## 附加内容
+HQCM can be adapted for three change-related tasks:
+- **Change Summarization** (`chsum`) summarizes a code change (represented by a code diff) into a short sentence in natural language
+- **Change Classification** (`chcl`) classifies each pair of code change and summary into one of the categories
+- **Code Refinement** (`coderef`) refines a given piece of code based a comment to produce the refined code, commonly used in code review process 
 
-视项目的实际情况，同样也应该包含以下内容：
+Below transforms HQCM into its `chsum` (change-summarization) variant and saves the variant into `$CHSUM_PATH` for supervised fine-tuning:
 
-- 项目特性：说明本项目相较于其他同类项目所具有的特性
-- 兼容环境：说明本项目能够在什么平台上运行
-- 使用示例：展示一些使用本项目的小demo
-- 主要项目负责人：使用“@”标注出本项目的主要负责人，方便项目的用户沟通
-- 参与贡献的方式：规定好其他用户参与本项目并贡献代码的方式
-- 项目的参与者：列出项目主要的参与人
-- 已知用户：列出已经在生产环境中使用了本项目的全部或部分组件的公司或组织
-- 赞助者：列出为本项目提供赞助的用户
+```shell
+export CHSUM_VARIANT_PATH='./dataset/chsum'
+python -m hqcm.xdata --task chsum --output $CHSUM_VARIANT_PATH ./dataset/
+```
+
+## Fine-tuning SLMs
+
+The adapted dataset can be used for SLMs' supervised fine-tuning or used as few-shot examples for LLMs.
+We provided scripts to fine-tune a HuggingFace model with LoRA based on the transformed dataset.
+
+Below fine-tunes Llama2-7b for change summarization and saves it into `$CHSUM_MODEL_PATH`, using HQCM's chsum variant in `$CHSUM_VARIANT_PATH`:
+
+```sh
+export CHSUM_MODEL_PATH='/path/to/chsum_model'
+python -m hqcm.sft                \
+    --seed 0                      \
+    --learning-rate '2e-4'        \
+    --num-epochs 5                \
+    --batch-size 1                \
+    --micro-batch-size 1          \
+    --lora-rank 64                \
+    --lora-alpha 16               \
+    --lora-dropout 0.1            \
+    --quantization '-1'           \
+    --dataset $CHSUM_VARIANT_PATH \
+    --split 'train'               \
+    --max-length 512              \
+    --output $CHSUM_MODEL_PATH    \
+    '/path/to/your/llama2-7b'
+```
+
+Below leverages the fine-tuned model in `$CHSUM_MODEL_PATH` to generate summaries for changes in the test split of `$CHSUM_VARIANT_PATH`, with results exporting to `$CHSUM_RES_PATH`:
+
+```shell
+export CHSUM_RES_PATH='/path/to/chsum_results'
+python -m hqcm.gen                \
+    --dataset $CHSUM_VARIANT_PATH \
+    --split 'test'                \
+    --output $CHSUM_RES_PATH      \
+    --temperature 0               \
+    $CHSUM_MODEL_PATH
+```
+
+The above scripts also support HQCM's chcl and coderef variants.
+
+## FAQs
+
+Q: The fine-tuning and generation scripts got stuck when connecting to HuggingFace
+A: HQCM's scripts assume an offline environment. Perhaps disabling download by:
+
+```shell
+export HF_DATASETS_OFFLINE=1         # Disable HuggingFace's online accessing to datasets
+export TRANSFORMERS_OFFLINE=1        # Disable HuggingFace's online accessing to models
+export TOKENIZERS_PARALLELISM=false  # Disable tokenizer's parallelism
+```
+
+Q: Does HQCM support other code change-related tasks?
+A: HQCM is code-change dataset. Users can adapt it to any change-related tasks in theory, but we did not experiment this. This require users to comprehend the task and reformat the dataset according to their usages. We are expecting promising results and we welcome such adaptations.
+
+## Citation
+
+HQCM was published in [ASE '24](https://dl.acm.org/doi/10.1145/3691620.3694999).
+If you find it helpful, please consider citing our paper:
+
+```txt
+@inproceedings{hqcm_ase24,
+  author = {Li, Cong and Xu, Zhaogui and Di, Peng and Wang, Dongxia and Li, Zheng and Zheng, Qian},
+  title = {Understanding Code Changes Practically with Small-Scale Language Models},
+  year = {2024},
+  isbn = {9798400712487},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3691620.3694999},
+  doi = {10.1145/3691620.3694999},
+  booktitle = {Proceedings of the 39th IEEE/ACM International Conference on Automated Software Engineering},
+  pages = {216–228},
+  numpages = {13},
+  keywords = {code change, code review, language model, LLM, SLM},
+  location = {Sacramento, CA, USA},
+  series = {ASE '24}
+}
+```
