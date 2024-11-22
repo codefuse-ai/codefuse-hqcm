@@ -7,8 +7,6 @@
     <p>A Small-Scale yet High-Quality Dataset for Code Change Understanding</p>
 </div>
 
----
-
 ## Overview
  
 HQCM is a smaller yet better dataset for code change understanding.
