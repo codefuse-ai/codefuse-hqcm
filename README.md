@@ -1,6 +1,17 @@
-# CodeFuse HQCMBench
+<p style="text-align: center">
+  <img src="assets/codefuse.jpg" alt="CodeFuse" width="100%"/>
+</p>
 
-HQCM is a small-scale yet high-quality dataset designed for *Code-Change Understanding*.
+<div style="text-align: center">
+    <h1>CodeFuse HQCM</h1>
+    <p>A Small-Scale yet High-Quality Dataset for Code Change Understanding</p>
+</div>
+
+---
+
+## Overview
+ 
+HQCM is a smaller yet better dataset for code change understanding.
 It is a carefully developed subset of the Java portion of the [MCMD](https://doi.org/10.1007/s10664-022-10219-1) dataset.
 Each entry in HQCM has been meticulously selected, reviewed, revised, and validated by crowdsource developers.
 The creation of HQCM stems from the recognition that large language models (LLMs) are not silver bullets;
