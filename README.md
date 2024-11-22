@@ -1,8 +1,8 @@
-<p style="text-align: center">
+<p align="center">
   <img src="assets/codefuse.jpg" alt="CodeFuse" width="100%"/>
 </p>
 
-<div style="text-align: center">
+<div align="center">
     <h1>CodeFuse HQCM</h1>
     <p>A Small-Scale yet High-Quality Dataset for Code Change Understanding</p>
 </div>
